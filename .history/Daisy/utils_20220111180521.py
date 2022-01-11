@@ -140,40 +140,6 @@ def convert_type(data,columns):
     return data
 
 
-def make_prediction(response, response_type,training_data, test,dataset):
-
-    result = []
-
-    train_data_y = training_data[response].astype("float64")
-    train_data_X = training_data.drop(columns=[response,"label","fnlwgt"]).astype("float64")
-
-    test_data_X = test.drop(columns=[response,"label","fnlwgt"]).astype("float64")
-    test_data_y = test[response].astype("float64")
-
-
-    if response_type == "clf":
-
-        clf = xgb.XGBClassifier(eval_metric='mlogloss')
-
-    else:
-
-        clf = xgb.XGBRegressor(eval_metric='mlogloss')
-
-    clf.fit(train_data_X, train_data_y)
-    result.append(clf.score(test_data_X,test_data_y))
-
-
-    for data in dataset:
-
-        train_X = data.drop(columns=[response,"label","fnlwgt"]).astype("float64")
-        train_y = data[response].astype("float64")
-        
-        try:
-            clf.fit(train_X, train_y)
-            result.append(clf.score(test_data_X,test_data_y))
-        except:
-            result.append(np.nan)
-
     return result
 
 
@@ -214,8 +180,6 @@ def make_prediction_diff(response, response_type,training_data, test,dataset):
             result.append(abs(ground_truth - clf.score(test_data_X,test_data_y)))
         except:
             result.append(np.nan)
-
-    return result
 
 
 

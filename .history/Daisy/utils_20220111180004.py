@@ -32,8 +32,6 @@ from sklearn.preprocessing import MinMaxScaler
 import numpy
 from sklearn.model_selection import cross_val_score
 from tqdm import tqdm
-from sklearn.cluster import KMeans
-from sklearn.metrics.cluster import normalized_mutual_info_score
 
 def to_df(data,dataset):
     samples = data.reshape(data.shape[0], -1)
@@ -140,10 +138,7 @@ def convert_type(data,columns):
     return data
 
 
-def make_prediction(response, response_type,training_data, test,dataset):
-
-    result = []
-
+def make_prediction(response, response_type):
     train_data_y = training_data[response].astype("float64")
     train_data_X = training_data.drop(columns=[response,"label","fnlwgt"]).astype("float64")
 
@@ -151,25 +146,76 @@ def make_prediction(response, response_type,training_data, test,dataset):
     test_data_y = test[response].astype("float64")
 
 
+    train_data_sample_X = data_sample.drop(columns=[response,"label","fnlwgt"]).astype("float64")
+    train_data_sample_y = data_sample[response].astype("float64")
+
+
+    # ITS-Linear
+    train_its_weak_X = its_weak.drop(columns=[response,"label","fnlwgt"]).astype("float64")
+    train_its_weak_y = its_weak[response].astype("float64")
+
+    # origin ITS Loss
+    train_its_X = its.drop(columns=[response,"label","fnlwgt"]).astype("float64")
+    train_its_y = its[response].astype("float64")
+
+
+    # ITS-complex
+    train_its_complex_X = its_complex.drop(columns=[response,"label","fnlwgt"]).astype("float64")
+    train_its_complex_y = its_complex[response].astype("float64")
+
+    # VAE baseline
+    train_VAE_X = baseline_VAE.drop(columns=[response,"label","fnlwgt"]).astype("float64")
+    train_VAE_y = baseline_VAE[response].astype("float64")
+
+    result = []
+
     if response_type == "clf":
 
         clf = xgb.XGBClassifier(eval_metric='mlogloss')
 
-    else:
+        clf.fit(train_data_X, train_data_y)
+        #result.append(cross_val_score(clf, test_data_X,test_data_y, cv=3).mean())
+        result.append(clf.score(test_data_X,test_data_y))
 
+        clf.fit(train_data_sample_X, train_data_sample_y)
+        result.append(clf.score(test_data_X,test_data_y))
+
+        clf.fit(train_its_weak_X, train_its_weak_y)
+        result.append(clf.score(test_data_X,test_data_y))
+
+        clf.fit(train_its_X, train_its_y)
+        result.append(clf.score(test_data_X,test_data_y))
+
+        clf.fit(train_its_complex_X, train_its_complex_y)
+        result.append(clf.score(test_data_X,test_data_y))
+
+        try:
+            clf.fit(train_VAE_X, train_VAE_y)
+            result.append(clf.score(test_data_X,test_data_y))
+        except:
+            result.append(np.nan)
+
+
+    else:
         clf = xgb.XGBRegressor(eval_metric='mlogloss')
 
-    clf.fit(train_data_X, train_data_y)
-    result.append(clf.score(test_data_X,test_data_y))
+        clf.fit(train_data_X, train_data_y)
+        result.append(clf.score(test_data_X,test_data_y))
 
+        clf.fit(train_data_sample_X, train_data_sample_y)
+        result.append(clf.score(test_data_X,test_data_y))
 
-    for data in dataset:
+        clf.fit(train_its_weak_X, train_its_weak_y)
+        result.append(clf.score(test_data_X,test_data_y))
 
-        train_X = data.drop(columns=[response,"label","fnlwgt"]).astype("float64")
-        train_y = data[response].astype("float64")
-        
+        clf.fit(train_its_X, train_its_y)
+        result.append(clf.score(test_data_X,test_data_y))
+
+        clf.fit(train_its_complex_X, train_its_complex_y)
+        result.append(clf.score(test_data_X,test_data_y))
+
         try:
-            clf.fit(train_X, train_y)
+            clf.fit(train_VAE_X, train_VAE_y)
             result.append(clf.score(test_data_X,test_data_y))
         except:
             result.append(np.nan)
@@ -180,37 +226,86 @@ def make_prediction(response, response_type,training_data, test,dataset):
 
 
 
-def make_prediction_diff(response, response_type,training_data, test,dataset):
-
-    result = []
-
+def make_prediction_diff(response, response_type):
     train_data_y = training_data[response].astype("float64")
     train_data_X = training_data.drop(columns=[response,"label","fnlwgt"]).astype("float64")
 
     test_data_X = test.drop(columns=[response,"label","fnlwgt"]).astype("float64")
     test_data_y = test[response].astype("float64")
+    
+    # Data_sample
+    train_data_sample_X = data_sample.drop(columns=[response,"label","fnlwgt"]).astype("float64")
+    train_data_sample_y = data_sample[response].astype("float64")
 
+    # ITS-Linear
+    train_its_weak_X = its_weak.drop(columns=[response,"label","fnlwgt"]).astype("float64")
+    train_its_weak_y = its_weak[response].astype("float64")
+
+    # origin ITS Loss
+    train_its_X = its.drop(columns=[response,"label","fnlwgt"]).astype("float64")
+    train_its_y = its[response].astype("float64")
+
+
+    # ITS-complex
+    train_its_complex_X = its_complex.drop(columns=[response,"label","fnlwgt"]).astype("float64")
+    train_its_complex_y = its_complex[response].astype("float64")
+
+    # VAE baseline
+    train_VAE_X = baseline_VAE.drop(columns=[response,"label","fnlwgt"]).astype("float64")
+    train_VAE_y = baseline_VAE[response].astype("float64")
+
+    result = []
 
     if response_type == "clf":
 
         clf = xgb.XGBClassifier(eval_metric='mlogloss')
 
-    else:
+        clf.fit(train_data_X, train_data_y)
+        #result.append(cross_val_score(clf, test_data_X,test_data_y, cv=3).mean())
+        ground_truth = clf.score(test_data_X,test_data_y)
+        result.append(abs(ground_truth - ground_truth))
 
+        clf.fit(train_data_sample_X, train_data_sample_y)
+        result.append(abs(ground_truth - clf.score(test_data_X,test_data_y)))
+
+
+
+        clf.fit(train_its_weak_X, train_its_weak_y)
+        result.append(abs(ground_truth - clf.score(test_data_X,test_data_y)))
+
+        clf.fit(train_its_X, train_its_y)
+        result.append(abs(ground_truth - clf.score(test_data_X,test_data_y)))
+
+        clf.fit(train_its_complex_X, train_its_complex_y)
+        result.append(abs(ground_truth - clf.score(test_data_X,test_data_y)))
+
+        try:
+            clf.fit(train_VAE_X, train_VAE_y)
+            result.append(abs(ground_truth - clf.score(test_data_X,test_data_y)))
+        except:
+            result.append(np.nan)
+
+    else:
         clf = xgb.XGBRegressor(eval_metric='mlogloss')
 
-    clf.fit(train_data_X, train_data_y)
-    ground_truth = clf.score(test_data_X,test_data_y)
-    result.append(abs(ground_truth - ground_truth))
+        clf.fit(train_data_X, train_data_y)
+        ground_truth = clf.score(test_data_X,test_data_y)
+        result.append(ground_truth - ground_truth)
 
+        clf.fit(train_data_sample_X, train_data_sample_y)
+        result.append(abs(ground_truth - clf.score(test_data_X,test_data_y)))
 
-    for data in dataset:
+        clf.fit(train_its_weak_X, train_its_weak_y)
+        result.append(abs(ground_truth - clf.score(test_data_X,test_data_y)))
 
-        train_X = data.drop(columns=[response,"label","fnlwgt"]).astype("float64")
-        train_y = data[response].astype("float64")
-        
+        clf.fit(train_its_X, train_its_y)
+        result.append(abs(ground_truth - clf.score(test_data_X,test_data_y)))
+
+        clf.fit(train_its_complex_X, train_its_complex_y)
+        result.append(abs(ground_truth - clf.score(test_data_X,test_data_y)))
+
         try:
-            clf.fit(train_X, train_y)
+            clf.fit(train_VAE_X, train_VAE_y)
             result.append(abs(ground_truth - clf.score(test_data_X,test_data_y)))
         except:
             result.append(np.nan)
@@ -219,13 +314,22 @@ def make_prediction_diff(response, response_type,training_data, test,dataset):
 
 
 
-
-def make_clustering(training_data,test,dataset,n = 5):
+def make_clustering(n = 5):
     NMI = []
 
     train_data_x = training_data.drop(columns=["label","fnlwgt"]).astype("float64")
 
-    test_data_X = test.drop(columns=["label","fnlwgt"]).astype("float64")
+    test_data_X = test.drop(columns=["label","fnlwgt"]).astype("float64")   
+    # Data_sample
+    train_data_sample_X = data_sample.drop(columns=["label","fnlwgt"]).astype("float64")
+    # ITS-Linear
+    train_its_weak_X = its_weak.drop(columns=["label","fnlwgt"]).astype("float64")
+    # origin ITS Loss
+    train_its_X = its.drop(columns=["label","fnlwgt"]).astype("float64")
+    # ITS-complex
+    train_its_complex_X = its_complex.drop(columns=["label","fnlwgt"]).astype("float64")
+    # VAE baseline
+    train_VAE_X = baseline_VAE.drop(columns=["label","fnlwgt"]).astype("float64")
     
     kmeans = KMeans(n_clusters=n, random_state=0).fit(train_data_x)
 
@@ -233,8 +337,7 @@ def make_clustering(training_data,test,dataset,n = 5):
 
     NMI.append(normalized_mutual_info_score(ground_truth, ground_truth))
 
-    for data in dataset:
-        data = data.drop(columns=["label","fnlwgt"]).astype("float64")
+    for data in [train_data_sample_X, train_its_weak_X, train_its_X,train_its_complex_X, train_VAE_X]:
         kmeans = KMeans(n_clusters=n, random_state=0).fit(data)
         result = kmeans.predict(test_data_X)
         NMI.append(normalized_mutual_info_score(ground_truth, result))
